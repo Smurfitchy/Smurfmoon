@@ -3,7 +3,6 @@ import time
 import numpy as np
 import ccxt
 import requests
-
 if config.RUN_EMULATOR:
     import cv2
 else:
@@ -51,16 +50,16 @@ else:
     disp.clear()
     disp.display()    
 #480x320 for the pi display 
-frameSize = (128, 100)
+frameSize = (254, 200)
 
-titleFont = ImageFont.truetype("fonts/04B_03__.TTF", 8)
-splashFont = ImageFont.truetype("fonts/aAtmospheric.ttf", 12)
-balanceFont = ImageFont.truetype("fonts/Nunito-ExtraLight.ttf", 14)
-safemoonFont_large = ImageFont.truetype("fonts/aAtmospheric.ttf", 14)
-currencyFont = ImageFont.truetype("fonts/lilliput steps.ttf", 8)
+titleFont = ImageFont.truetype("fonts/04B_03__.TTF", 16)
+splashFont = ImageFont.truetype("fonts/aAtmospheric.ttf", 24)
+balanceFont = ImageFont.truetype("fonts/Nunito-ExtraLight.ttf", 28)
+safemoonFont_large = ImageFont.truetype("fonts/aAtmospheric.ttf", 28)
+currencyFont = ImageFont.truetype("fonts/lilliput steps.ttf", 16)
 
 arrow = Image.open('images/arrow.bmp').convert(imageEncoding)
-arrow = arrow.resize((8, 8), Image.ANTIALIAS)
+arrow = arrow.resize((16, 16), Image.ANTIALIAS)
 
 previousBalance = 0
 currentBalance = 0
@@ -74,7 +73,7 @@ currentPerc = 0
 startTime = time.time()
 timeDelta = 0
 
-displayTime = 60/3
+displayTime = 30   #time between pauses
 screenToShow = 0
 
 exchange = ccxt.gateio()
@@ -82,10 +81,8 @@ exchange = ccxt.gateio()
 def update_data():
     global previousBalance
     global currentBalance
-
     global previousRate
     global currentRate
-
     global previousPerc
     global currentPerc
 
@@ -115,8 +112,8 @@ while True:
     canvas = Image.new(imageEncoding, (frameSize))
     if (time.time() - startTime) > displayTime:
         startTime = time.time()
+        update_data()
 
-        update_data()    
     
     flip = False
     time2 = np.arange(0, 1, 0.1)
@@ -127,45 +124,49 @@ while True:
     else:
         flip = False
 
-    pix = (int)(lerp(5, 29, abs(screen_x_offset)))
+    pix = (int)(lerp(10, 58, abs(screen_x_offset)))
     
     image = Image.open('images/safe_logo.bmp').convert(imageEncoding)
     if flip:
         image = ImageOps.mirror(image)
-    image = image.resize((pix, 28), Image.ANTIALIAS)
-    canvas.paste(image, (28 - (int)(pix * 0.5) - 12, 2))
+    image = image.resize((pix, 56), Image.ANTIALIAS)
+    canvas.paste(image, (56 - (int)(pix * 0.5) - 24, 4))
 
     draw = ImageDraw.Draw(canvas)
 #Safemoon
-    draw.text((32, 11), "SAFEMOON", fill='white', font=splashFont)
+    draw.text((64, 28), "SAFEMOON", fill='white', font=splashFont)
 #Tracker
-    draw.text((95, 21), "Tracker", fill='white', font=titleFont)
+    draw.text((190, 52), "Tracker", fill='white', font=titleFont)
 #Safemoon S
-    draw.text((1, 36), "S", fill='white', font=safemoonFont_large)
+    draw.text((2, 72), "S", fill='white', font=safemoonFont_large)
 #Number of coins
-    draw.text((15, 34), "{:,.2f}".format(lerp(previousBalance, currentBalance, timeDelta)), fill="white", font=balanceFont)
+    draw.text((30, 68), "{:,.2f}".format(lerp(previousBalance, currentBalance, timeDelta)), fill="white", font=balanceFont)
 #$
-    draw.text((0, 50), "=" + config.LOCAL_CURRENCY_CHAR, fill='white', font=balanceFont)
+    draw.text((0, 100), "=" + config.LOCAL_CURRENCY_CHAR, fill='white', font=balanceFont)
 #How much money I got
-    draw.text((18, 50), "{:,.2f}".format((lerp(previousBalance, currentBalance, timeDelta) * lerp(previousRate, currentRate, timeDelta)) * localExchange, lerp(previousRate, currentRate, timeDelta) * localExchange), fill='white', font=balanceFont)   
+    draw.text((36, 100), "{:,.2f}".format((lerp(previousBalance, currentBalance, timeDelta) * lerp(previousRate, currentRate, timeDelta)) * localExchange, lerp(previousRate, currentRate, timeDelta) * localExchange), fill='white', font=balanceFont)   
 #cost per coin
-    draw.text((1, 70), "$", fill='white', font=safemoonFont_large)
-    draw.text((17, 68), "{:,.9f}".format(lerp(previousRate, currentRate, timeDelta)), fill="white", font=balanceFont)
+    draw.text((2, 140), "$", fill='white', font=safemoonFont_large)
+    draw.text((34, 136), "{:,.9f}".format(lerp(previousRate, currentRate, timeDelta)), fill="white", font=balanceFont)
     
     sign = currentRate - previousRate
 
-    if sign > 0:
+    if sign > 0: #Going up
         arrow2 = ImageOps.flip(arrow)
-        canvas.paste(arrow2, (105, 73))
-    if sign < 0:
-        canvas.paste(arrow, (105, 73))
+        canvas.paste(arrow2, (210, 146))
+        draw.rectangle((100, 174, 250, 196), fill=(49, 192, 0), outline=(32, 125, 0))
+
+    if sign < 0: #Going down
+        canvas.paste(arrow, (210, 146))
+        draw.rectangle((100, 174, 250, 196), fill=(192, 0, 0), outline=(125, 0, 0))
+        
 
     perc24 = lerp(previousPerc, currentPerc, timeDelta)
     includeSign = ""
     if perc24 > 0:
         includeSign = "+"
 #24 % change
-    draw.text((2, 87), "24h {}{:,.2f}%".format(includeSign, perc24), fill='white', font=titleFont)    
+    draw.text((4, 174), "24h {}{:,.2f}%".format(includeSign, perc24), fill='white', font=titleFont)    
     
 
     timeDelta = inverse_lerp(0, displayTime, time.time() - startTime)
@@ -176,7 +177,7 @@ while True:
         frameBGR = cv2.cvtColor(npImage, cv2.COLOR_RGB2BGR)
         
         #This is where I flipped it 
-        frameBGR=cv2.flip(frameBGR,-1)
+        #frameBGR=cv2.flip(frameBGR,-1)
 
 
         cv2.imshow('HashAPI', frameBGR)
