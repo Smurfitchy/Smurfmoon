@@ -177,7 +177,7 @@ while True:
         frameBGR = cv2.cvtColor(npImage, cv2.COLOR_RGB2BGR)
         
         #This is where I flipped it 
-        #frameBGR=cv2.flip(frameBGR,-1)
+        frameBGR=cv2.flip(frameBGR,-1)
 
 
         cv2.imshow('HashAPI', frameBGR)
